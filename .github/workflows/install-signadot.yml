@@ -37,12 +37,18 @@ jobs:
           kubectl create ns signadot
           helm install --namespace=signadot --set sidecar-injector.enabled=true signadot ./
 
-          sleep 10
+          kubectl -n signadot wait --for=condition=ready pod -l sd-component=proxy
+          kubectl -n signadot wait --for=condition=ready pod -l app=sd-sidecar-injector
 
           cd ../
           kubectl apply -f echoserver.yaml
+          kubectl wait --for=condition=ready pod -l app=nginx
 
-          sleep 10
           kubectl get pods -A
 
           kubectl -n signadot logs $(kubectl -n signadot get pod -l app=sd-sidecar-injector -o name) | tee injector-logs.txt
+
+          if grep -q "TLS handshake error" injector-logs.txt; then
+            echo "Injection failed"
+            exit -1;
+          fi
