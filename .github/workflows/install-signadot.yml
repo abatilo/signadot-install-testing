@@ -27,26 +27,37 @@ jobs:
 
       - name: Install signadot
         run: |
+          # Download signadot
           curl -o signadot.zip https://signadot-helm.s3-us-west-2.amazonaws.com/release/${{ matrix.signadot-version }}/signadot.zip
           unzip signadot.zip
           cd signadot
 
+          # Generate cert and place pem into values file
           ./util/gen-certs.sh
           dasel put string -f values.yaml '.sidecar-injector.caBundle' $(cat util/secret.yaml | dasel -p yaml select -s '.data.cert\.pem')
 
+          # Use smaller resources so that we can fit on the GitHub Action runner
+          dasel put string -f values.yaml '.cpu' 200m
+          dasel put string -f values.yaml '.memory' 200Mi
+          dasel put string -f values.yaml '.sidecar-injector.cpu' 200m
+          dasel put string -f values.yaml '.sidecar-injector.memory' 200Mi
+
+          # Install signadot
           kubectl create ns signadot
           kubectl apply -f ./util/secret.yaml
           helm install --namespace=signadot --set sidecar-injector.enabled=true signadot ./
-
           sleep 10
 
-          kubectl -n signadot wait --timeout=30s --for=condition=ready pod -l sd-component=proxy
-          kubectl -n signadot wait --timeout=30s --for=condition=ready pod -l app=sd-sidecar-injector
+          # Wait for signadot components to start
+          kubectl -n signadot wait --timeout=10s --for=condition=ready pod -l sd-component=proxy
+          kubectl -n signadot wait --timeout=10s --for=condition=ready pod -l app=sd-sidecar-injector
 
+          # Install test nginx container
           cd ../
           kubectl apply -f echoserver.yaml
-          kubectl wait --timeout=30s --for=condition=ready pod -l app=nginx
+          kubectl wait --timeout=10s --for=condition=ready pod -l app=nginx
 
+          # Check for TLS error in logs
           kubectl -n signadot logs $(kubectl -n signadot get pod -l app=sd-sidecar-injector -o name) | tee injector-logs.txt
           if grep -q "TLS handshake error" injector-logs.txt; then
             echo "Injection failed"
