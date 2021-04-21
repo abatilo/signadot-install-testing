@@ -45,4 +45,4 @@ jobs:
           sleep 10
           kubectl get pods -A
 
-          kubectl -n signadot logs $(kubectl -n signadot get pod -l app=sd-sidecar-injector -o name)
+          kubectl -n signadot logs $(kubectl -n signadot get pod -l app=sd-sidecar-injector -o name) | tee injector-logs.txt
