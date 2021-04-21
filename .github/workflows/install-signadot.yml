@@ -1,0 +1,45 @@
+name: Install Signadot
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Build and push
+        uses: ./.github/actions/main
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  kind:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        kind-node:
+          - kindest/node:v1.20.2
+          - kindest/node:v1.19.7
+          - kindest/node:v1.18.15
+          - kindest/node:v1.17.17
+          - kindest/node:v1.16.15
+        signadot-version:
+          - v0.5.2
+    steps:
+      - uses: actions/checkout@master
+      - uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: v0.10.0
+          image: ${{ matrix.kind-node }}
+      - run: |
+          curl -o signadot.zip https://signadot-helm.s3-us-west-2.amazonaws.com/release/${{ matrix.signadot-version }}/signadot.zip
+          unzip signadot.zip
+          cd signadot
+          ./util/gen.sh
+          dasel put string -f values.yaml '.sidecar-injector.caBundle' $(cat util/secret.yaml | dasel -p yaml select -s '.data.cert\.pem')
+
+          kubectl create ns signadot
+          helm install --namespace=signadot --set sidecar-injector.enabled=true signadot ./
+
+          sleep 15
+          kubectl get pods -A
