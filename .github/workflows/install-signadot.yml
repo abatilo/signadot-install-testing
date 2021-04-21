@@ -35,10 +35,14 @@ jobs:
           dasel put string -f values.yaml '.sidecar-injector.caBundle' $(cat util/secret.yaml | dasel -p yaml select -s '.data.cert\.pem')
 
           kubectl create ns signadot
-          helm install --wait --namespace=signadot --set sidecar-injector.enabled=true signadot ./
+          helm install --namespace=signadot --set sidecar-injector.enabled=true signadot ./
+
+          sleep 10
 
           cd ../
           kubectl apply -f echoserver.yaml
 
           sleep 10
           kubectl get pods -A
+
+          kubectl -n signadot logs $(kubectl -n signadot get pod -l app=sd-sidecar-injector -o name)
