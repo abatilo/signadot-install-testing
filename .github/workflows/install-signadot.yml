@@ -35,17 +35,18 @@ jobs:
           dasel put string -f values.yaml '.sidecar-injector.caBundle' $(cat util/secret.yaml | dasel -p yaml select -s '.data.cert\.pem')
 
           kubectl create ns signadot
+          kubectl apply -f ./util/secret.yaml
           helm install --namespace=signadot --set sidecar-injector.enabled=true signadot ./
 
           sleep 10
 
           kubectl -n signadot describe pods
-          kubectl -n signadot wait --for=condition=ready pod -l sd-component=proxy
-          kubectl -n signadot wait --for=condition=ready pod -l app=sd-sidecar-injector
+          kubectl -n signadot wait --timeout=30s --for=condition=ready pod -l sd-component=proxy
+          kubectl -n signadot wait --timeout=30s --for=condition=ready pod -l app=sd-sidecar-injector
 
           cd ../
           kubectl apply -f echoserver.yaml
-          kubectl wait --for=condition=ready pod -l app=nginx
+          kubectl wait --timeout=30s --for=condition=ready pod -l app=nginx
 
           kubectl get pods -A
 
