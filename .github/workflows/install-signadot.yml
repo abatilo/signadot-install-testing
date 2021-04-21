@@ -32,7 +32,7 @@ jobs:
           pwd
           ls -la
           ls -la ./util
-          ./util/gen.sh
+          ./util/gen-certs.sh
           # dasel put string -f values.yaml '.sidecar-injector.caBundle' $(cat util/secret.yaml | dasel -p yaml select -s '.data.cert\.pem')
 
           # kubectl create ns signadot
