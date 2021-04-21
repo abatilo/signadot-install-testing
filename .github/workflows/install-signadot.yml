@@ -2,7 +2,7 @@ name: Install Signadot
 on: [push]
 
 jobs:
-  kind:
+  signadot:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -17,9 +17,7 @@ jobs:
           - v0.5.2
     steps:
       - uses: actions/checkout@master
-
       - uses: asdf-vm/actions/install@v1
-
       - uses: nolar/setup-k3d-k3s@v1
         with:
           version: ${{ matrix.k8s-version }}
@@ -45,7 +43,9 @@ jobs:
           kubectl create ns signadot
           kubectl apply -f ./util/secret.yaml
           helm install --namespace=signadot --set sidecar-injector.enabled=true signadot ./
-          sleep 10
+
+          # Give helm install some time to come up
+          sleep 30
 
           # Wait for signadot components to start
           kubectl -n signadot wait --timeout=30s --for=condition=ready pod -l sd-component=proxy
