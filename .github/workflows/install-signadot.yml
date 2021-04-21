@@ -7,12 +7,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kind-node:
-          - kindest/node:v1.20.2
-          - kindest/node:v1.19.7
-          - kindest/node:v1.18.15
-          - kindest/node:v1.17.17
-          - kindest/node:v1.16.15
+        k8s-version:
+          - v1.20
+          - v1.19
+          - v1.18
+          - v1.17
+          - v1.16
         signadot-version:
           - v0.5.2
     steps:
@@ -20,10 +20,9 @@ jobs:
 
       - uses: asdf-vm/actions/install@v1
 
-      - uses: engineerd/setup-kind@v0.5.0
+      - uses: nolar/setup-k3d-k3s@v1
         with:
-          version: v0.10.0
-          image: ${{ matrix.kind-node }}
+          version: ${{ matrix.k8s-version }}
 
       - name: Install signadot
         run: |
@@ -49,13 +48,13 @@ jobs:
           sleep 10
 
           # Wait for signadot components to start
-          kubectl -n signadot wait --timeout=10s --for=condition=ready pod -l sd-component=proxy
-          kubectl -n signadot wait --timeout=10s --for=condition=ready pod -l app=sd-sidecar-injector
+          kubectl -n signadot wait --timeout=30s --for=condition=ready pod -l sd-component=proxy
+          kubectl -n signadot wait --timeout=30s --for=condition=ready pod -l app=sd-sidecar-injector
 
           # Install test nginx container
           cd ../
           kubectl apply -f echoserver.yaml
-          kubectl wait --timeout=10s --for=condition=ready pod -l app=nginx
+          kubectl wait --timeout=30s --for=condition=ready pod -l app=nginx
 
           # Check for TLS error in logs
           kubectl -n signadot logs $(kubectl -n signadot get pod -l app=sd-sidecar-injector -o name) | tee injector-logs.txt

@@ -9,7 +9,7 @@ To help verify that there's been a fix made, I've created this repository which
 uses GitHub Actions to run an integration test across multiple versions of
 Kubernetes.
 
-We use `kind` to run a Kubernetes cluster in the GitHub Action, and then use
+We use `k3d` to run a Kubernetes cluster in the GitHub Action, and then use
 the installation instructions for signadot found
 [here](https://docs.signadot.com/installation/installation/cluster-component/signadot-sidecars).
 
