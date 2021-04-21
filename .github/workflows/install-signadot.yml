@@ -24,19 +24,20 @@ jobs:
       #   with:
       #     version: v0.10.0
       #     image: ${{ matrix.kind-node }}
-      - run: |
+      - name: Install signadot
+        run: |
           curl -o signadot.zip https://signadot-helm.s3-us-west-2.amazonaws.com/release/${{ matrix.signadot-version }}/signadot.zip
           unzip signadot.zip
-
           cd signadot
-          pwd
-          ls -la
-          ls -la ./util
+
           ./util/gen-certs.sh
-          # dasel put string -f values.yaml '.sidecar-injector.caBundle' $(cat util/secret.yaml | dasel -p yaml select -s '.data.cert\.pem')
+          dasel put string -f values.yaml '.sidecar-injector.caBundle' $(cat util/secret.yaml | dasel -p yaml select -s '.data.cert\.pem')
 
-          # kubectl create ns signadot
-          # helm install --namespace=signadot --set sidecar-injector.enabled=true signadot ./
+          kubectl create ns signadot
+          helm install --wait --namespace=signadot --set sidecar-injector.enabled=true signadot ./
 
-          # sleep 15
-          # kubectl get pods -A
+          cd ../
+          kubectl apply -f echoserver.yaml
+
+          sleep 10
+          kubectl get pods -A
