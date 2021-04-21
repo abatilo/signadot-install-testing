@@ -37,6 +37,9 @@ jobs:
           kubectl create ns signadot
           helm install --namespace=signadot --set sidecar-injector.enabled=true signadot ./
 
+          sleep 10
+
+          kubectl -n signadot describe pods
           kubectl -n signadot wait --for=condition=ready pod -l sd-component=proxy
           kubectl -n signadot wait --for=condition=ready pod -l app=sd-sidecar-injector
 
